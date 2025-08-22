@@ -2,15 +2,15 @@
 
 TrinityTrend is a modular, multi-signal trading indicator designed for clarity, conviction, and volatility awareness. It blends:
 
-- 🔹 Candle TrendStrength (normalized directional scoring)
-- 🔹 SuperTrend overlay (bias and trailing stop logic)
-- 🔹 TTM Squeeze detection (volatility compression and breakout timing)
+- Candle TrendStrength (normalized directional scoring)
+- SuperTrend overlay (bias and trailing stop logic)
+- TTM Squeeze detection (volatility compression and breakout timing)
 
 Built for traders across all timeframes—from scalpers to macro strategists.
 
 ---
 
-## 🧠 Core Logic
+## Core Logic
 
 ### TrendStrength Index
 - Combines Price Change, EMA Slope, and MA Distance
@@ -29,7 +29,7 @@ Built for traders across all timeframes—from scalpers to macro strategists.
 
 ---
 
-## 🕰️ Mode Profiles
+## Mode Profiles
 
 | Mode            | Lookback | MA Type     | ATR | Squeeze Settings | Use Case                          |
 |-----------------|----------|-------------|-----|------------------|-----------------------------------|
@@ -40,7 +40,7 @@ Built for traders across all timeframes—from scalpers to macro strategists.
 
 ---
 
-## 🔀 Modular Design
+## Modular Design
 
 - Mix and match TrendStrength and SuperTrend modes
 - Example: Intraday candles inside Extended Macro bias
