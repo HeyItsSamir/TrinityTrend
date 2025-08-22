@@ -45,7 +45,3 @@ Built for traders across all timeframes—from scalpers to macro strategists.
 - Mix and match TrendStrength and SuperTrend modes
 - Example: Intraday candles inside Extended Macro bias
 - Supports multi-timeframe overlays and strategic forks
-
----
-
-## 📂 Repo Structure
