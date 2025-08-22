@@ -1,4 +1,4 @@
-# TrinityTrend 🔺📊
+# TrinityTrend
 
 TrinityTrend is a modular, multi-signal trading indicator designed for clarity, conviction, and volatility awareness. It blends:
 
