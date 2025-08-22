@@ -45,3 +45,5 @@ Built for traders across all timeframes—from scalpers to macro strategists.
 - Mix and match TrendStrength and SuperTrend modes
 - Example: Intraday candles inside Extended Macro bias
 - Supports multi-timeframe overlays and strategic forks
+
+<img width="1753" height="753" alt="TTM Squeez" src="https://github.com/user-attachments/assets/566dd138-e2bd-44a2-ba95-490490a2976c" />
