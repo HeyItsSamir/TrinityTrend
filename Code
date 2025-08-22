@@ -1,0 +1,209 @@
+//Written in Pine
+
+//@version=6
+indicator("Trend Strength Candles + SuperTrend #TSBuild25", shorttitle="TS+ST", overlay=true)
+
+// -------------------- Setup Selector --------------------
+setupSelector = input.string("Swing", "Setup Mode", options=["Intraday", "Swing", "Macro", "Extended Macro"], group="⓪ Setup")
+
+// -------------------- Dynamic Parameters --------------------
+// Extended Macro tuned for institutional-style secular trend tracking
+// Notes:
+// - pcLookback: long lookback (~150 bars) for regime shifts
+// - emaLen: ~144 (common institutional smoothing length)
+// - ma1Len/ma2Len: 100 vs 300, similar to 200 vs 500-day moving averages
+// - normLen: very long (500) so trend score reflects multi-year context
+// - atrLen: 50 to stabilize volatility
+// - This setup is intended as a slow "big picture" filter, aligning with levels 
+//   institutions and funds often use for secular regime analysis.
+
+pcLookback     = switch setupSelector
+    "Intraday"       => 10
+    "Swing"          => 20
+    "Macro"          => 50
+    "Extended Macro" => 150
+
+emaLen         = switch setupSelector
+    "Intraday"       => 13
+    "Swing"          => 21
+    "Macro"          => 55
+    "Extended Macro" => 144   // ~144 bars ≈ institutional "long EMA"
+
+emaSlopeSmooth = switch setupSelector
+    "Intraday"       => 3
+    "Swing"          => 5
+    "Macro"          => 10
+    "Extended Macro" => 21
+
+ma1Len         = switch setupSelector
+    "Intraday"       => 9
+    "Swing"          => 20
+    "Macro"          => 50
+    "Extended Macro" => 100   // Long-term fast MA (≈ 50-day on daily)
+
+ma2Len         = switch setupSelector
+    "Intraday"       => 21
+    "Swing"          => 50
+    "Macro"          => 200
+    "Extended Macro" => 300   // Long-term slow MA (≈ 200/500-day cross)
+
+atrLen         = switch setupSelector
+    "Intraday"       => 10
+    "Swing"          => 14
+    "Macro"          => 20
+    "Extended Macro" => 50
+
+atrMult        = switch setupSelector
+    "Intraday"       => 1.2
+    "Swing"          => 1.0
+    "Macro"          => 0.8
+    "Extended Macro" => 0.6
+
+normLen        = switch setupSelector
+    "Intraday"       => 50
+    "Swing"          => 100
+    "Macro"          => 200
+    "Extended Macro" => 500   // 500-bar normalization for secular cycles
+
+bbLen          = switch setupSelector
+    "Intraday"       => 20
+    "Swing"          => 20
+    "Macro"          => 30
+    "Extended Macro" => 50
+
+bbMult         = switch setupSelector
+    "Intraday"       => 2.0
+    "Swing"          => 2.0
+    "Macro"          => 2.5
+    "Extended Macro" => 3.0
+
+kcLen          = switch setupSelector
+    "Intraday"       => 20
+    "Swing"          => 20
+    "Macro"          => 30
+    "Extended Macro" => 50
+
+kcMult         = switch setupSelector
+    "Intraday"       => 1.5
+    "Swing"          => 1.5
+    "Macro"          => 1.8
+    "Extended Macro" => 2.0
+
+
+// -------------------- SuperTrend Mode Selector --------------------
+superTrendSelector = input.string("Swing", "SuperTrend Mode", options=["Intraday", "Swing", "Macro", "Extended Macro"], group="⑥ SuperTrend Setup")
+
+superTrendFactor = switch superTrendSelector
+    "Intraday"       => 1.0
+    "Swing"          => 1.5
+    "Macro"          => 2.0
+    "Extended Macro" => 3.0
+
+superTrendATR = switch superTrendSelector
+    "Intraday"       => 10
+    "Swing"          => 14
+    "Macro"          => 21
+    "Extended Macro" => 50
+
+// -------------------- SuperTrend Calculation --------------------
+[supertrend, direction] = ta.supertrend(superTrendFactor, superTrendATR)
+
+// Don't reassign supertrend—just use it directly
+upTrend   = plot(direction < 0 ? supertrend : na, "Up Trend",   color=color.green, style=plot.style_linebr)
+downTrend = plot(direction > 0 ? supertrend : na, "Down Trend", color=color.red,   style=plot.style_linebr)
+bodyMiddle = plot((open + close) / 2, "Body Middle", display=display.none)
+
+fill(bodyMiddle, upTrend,   title="Uptrend background",   color=color.new(color.green, 90), fillgaps=false)
+fill(bodyMiddle, downTrend, title="Downtrend background", color=color.new(color.red,   90), fillgaps=false)
+
+
+// -------------------- Method Selection --------------------
+grpMethod = "① Trend Method"
+method = input.string("Price Change", "Method", options=["Price Change", "EMA Slope", "MA Distance"], group=grpMethod)
+
+// -------------------- Squeeze Toggle --------------------
+grpSqueeze = "② Squeeze"
+showSqueeze  = input.bool(true, "Enable Squeeze Highlight", group=grpSqueeze)
+squeezeColor = input.color(color.purple, "Squeeze Candle Color", group=grpSqueeze)
+
+// -------------------- MA Type Selection --------------------
+grpMA = "③ MA Distance"
+ma1Type = input.string("EMA", "MA1 Type", options=["EMA", "SMA", "WMA"], group=grpMA)
+ma2Type = input.string("SMA", "MA2 Type", options=["EMA", "SMA", "WMA"], group=grpMA)
+
+// -------------------- EMA Slope Type --------------------
+grpEMA = "④ EMA Slope"
+emaSlopeType = input.string("EMA", "EMA Slope Type", options=["EMA", "SMA", "WMA"], group=grpEMA)
+
+// -------------------- ATR --------------------
+atr = ta.atr(atrLen) * atrMult
+
+// -------------------- Raw Scores --------------------
+raw_pc = (close - close[pcLookback]) / atr
+
+emaSeries = switch emaSlopeType
+    "EMA" => ta.ema(close, emaLen)
+    "SMA" => ta.sma(close, emaLen)
+    "WMA" => ta.wma(close, emaLen)
+    => na
+
+raw_ema_slope = (emaSeries - emaSeries[1]) / atr
+raw_ema_slope_sm = ta.sma(raw_ema_slope, emaSlopeSmooth)
+
+maFunc(src, len, type) =>
+    switch type
+        "EMA" => ta.ema(src, len)
+        "SMA" => ta.sma(src, len)
+        "WMA" => ta.wma(src, len)
+        => na
+
+ma1 = maFunc(close, ma1Len, ma1Type)
+ma2 = maFunc(close, ma2Len, ma2Type)
+raw_ma_dist = (ma1 - ma2) / atr
+
+rawScore = switch method
+    "Price Change" => raw_pc
+    "EMA Slope"    => raw_ema_slope_sm
+    => raw_ma_dist
+
+// -------------------- Normalization to [-100,100] --------------------
+hiRaw = ta.highest(rawScore, normLen)
+loRaw = ta.lowest(rawScore, normLen)
+rng   = hiRaw - loRaw
+trendScore = rng != 0 ? (2 * ((rawScore - loRaw) / rng) - 1) * 100 : 0
+
+// -------------------- Squeeze Logic --------------------
+bbBasis = ta.sma(close, bbLen)
+bbStd   = ta.stdev(close, bbLen)
+bbUpper = bbBasis + bbStd * bbMult
+bbLower = bbBasis - bbStd * bbMult
+
+kcBasis = ta.ema(close, kcLen)
+kcRange = ta.atr(kcLen) * kcMult
+kcUpper = kcBasis + kcRange
+kcLower = kcBasis - kcRange
+
+squeeze = bbLower > kcLower and bbUpper < kcUpper
+
+// -------------------- Coloring --------------------
+grpColors = "⑤ Colors"
+colorStrongDown = input.color(color.rgb(255,   0, 122), "Strong Down", group=grpColors)
+colorMildDown   = input.color(color.rgb(255, 127,  80), "Mild Down",   group=grpColors)
+colorNeutral    = input.color(color.rgb(198, 197, 197), "Neutral",     group=grpColors)
+colorMildUp     = input.color(color.rgb( 57, 255,  20), "Mild Up",     group=grpColors)
+colorStrongUp   = input.color(color.rgb(  0, 255, 255), "Strong Up",   group=grpColors)
+
+gradCol(val) =>
+    switch
+        val <= -50 => color.from_gradient(val, -100, -50, colorStrongDown, colorMildDown)
+        val <=   0 => color.from_gradient(val,  -50,   0, colorMildDown,   colorNeutral)
+        val <=  50 => color.from_gradient(val,    0,  50, colorNeutral,    colorMildUp)
+        =>           color.from_gradient(val,   50, 100, colorMildUp,     colorStrongUp)
+
+barCol     = na(trendScore) ? colorNeutral : gradCol(trendScore)
+finalColor = showSqueeze and squeeze ? squeezeColor : barCol
+
+// -------------------- Apply --------------------
+barcolor(finalColor)
+
+// -------------------- Alerts --------------------
